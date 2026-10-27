@@ -5,6 +5,7 @@ import '../constants/app_colors.dart';
 import '../providers/game_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/audio_service.dart';
+import 'colorful_background.dart';
 
 class CustomHeader extends StatelessWidget {
   final int currentTabIndex;
@@ -19,15 +20,15 @@ class CustomHeader extends StatelessWidget {
   String _getTabName(int index) {
     switch (index) {
       case 0:
-        return 'HOME';
+        return 'TRANG CHỦ';
       case 1:
-        return 'PLAY';
+        return 'CHỌN CẤP ĐỘ';
       case 2:
-        return 'RANKING';
+        return 'BẢNG XẾP HẠNG';
       case 3:
-        return 'PROFILE';
+        return 'HỒ SƠ';
       default:
-        return 'HOME';
+        return 'TRANG CHỦ';
     }
   }
 
@@ -41,14 +42,8 @@ class CustomHeader extends StatelessWidget {
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.92),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.04),
-            offset: const Offset(0, 4),
-            blurRadius: 16,
-          ),
-        ],
+        color: AppColors.surface.withOpacity(0.55),
+        border: Border(bottom: BorderSide(color: AppColors.glossEdge, width: 1.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -71,11 +66,11 @@ class CustomHeader extends StatelessWidget {
                   height: 36,
                   margin: const EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    gradient: AppColors.rainbowGradient,
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.pink.withOpacity(0.35),
                         offset: const Offset(0, 3),
                         blurRadius: 8,
                       ),
@@ -96,12 +91,11 @@ class CustomHeader extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    inGame ? 'Game Board' : 'Sudoku',
+                  RainbowText(
+                    inGame ? 'Đang chơi' : 'Sudoku Sắc Màu',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                   if (!inGame)
@@ -111,7 +105,7 @@ class CustomHeader extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.2,
-                        color: AppColors.primary,
+                        color: AppColors.pink,
                       ),
                     ),
                 ],
@@ -131,7 +125,7 @@ class CustomHeader extends StatelessWidget {
                   size: 22,
                 ),
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.surfaceVariant,
+                  backgroundColor: AppColors.yellow.withOpacity(0.35),
                 ),
                 onPressed: () {
                   AudioService.playTap();
@@ -148,7 +142,7 @@ class CustomHeader extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    gradient: AppColors.oceanGradient,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(

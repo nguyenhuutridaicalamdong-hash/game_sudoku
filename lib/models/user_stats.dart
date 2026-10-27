@@ -2,54 +2,94 @@ import 'dart:convert';
 import 'difficulty.dart';
 
 class UserStats {
+  /// Id người chơi trong SQL Server ('' = chưa đăng nhập).
   String id;
+  String username;
   String playerName;
   String avatarUrl;
   int streakDays;
   int totalExp;
+  int totalScore;
+  int gamesPlayed;
   int puzzlesCompleted;
   int zeroMistakeGames;
   Map<Difficulty, int?> bestTimes;
+
+  // Cài đặt (lưu trên máy, không lưu lên server)
   bool soundEnabled;
   bool hapticsEnabled;
   bool autoRemoveNotes;
   bool highlightPeers;
   bool highlightMatchingNumbers;
 
+  static const String defaultAvatar =
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+
   UserStats({
-    String? id,
-    this.playerName = 'Alex',
-    this.avatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    this.streakDays = 5,
-    this.totalExp = 3420,
-    this.puzzlesCompleted = 28,
-    this.zeroMistakeGames = 19,
+    this.id = '',
+    this.username = '',
+    this.playerName = 'Người chơi',
+    this.avatarUrl = defaultAvatar,
+    this.streakDays = 0,
+    this.totalExp = 0,
+    this.totalScore = 0,
+    this.gamesPlayed = 0,
+    this.puzzlesCompleted = 0,
+    this.zeroMistakeGames = 0,
     Map<Difficulty, int?>? bestTimes,
     this.soundEnabled = true,
     this.hapticsEnabled = true,
     this.autoRemoveNotes = true,
     this.highlightPeers = true,
     this.highlightMatchingNumbers = true,
-  })  : id = id ?? 'user_${DateTime.now().millisecondsSinceEpoch}',
-        bestTimes = bestTimes ?? {
-          Difficulty.easy: 185,
-          Difficulty.medium: 272,
-          Difficulty.hard: 410,
-          Difficulty.expert: 580,
-          Difficulty.daily: 295,
-        };
+  }) : bestTimes = bestTimes ?? {};
 
   int get level => (totalExp / 250).floor() + 1;
   int get currentLevelExp => totalExp % 250;
   double get levelProgress => (currentLevelExp / 250).clamp(0.0, 1.0);
 
+  /// Cập nhật số liệu từ JSON UserDto của API (giữ nguyên phần cài đặt).
+  void applyServerUser(Map<String, dynamic> u) {
+    id = u['id'].toString();
+    username = u['username'] as String? ?? '';
+    playerName = u['displayName'] as String? ?? username;
+    totalExp = (u['totalExp'] as num?)?.toInt() ?? 0;
+    totalScore = (u['totalScore'] as num?)?.toInt() ?? 0;
+    gamesPlayed = (u['gamesPlayed'] as num?)?.toInt() ?? 0;
+    puzzlesCompleted = (u['puzzlesCompleted'] as num?)?.toInt() ?? 0;
+    zeroMistakeGames = (u['zeroMistakeGames'] as num?)?.toInt() ?? 0;
+    streakDays = (u['streakDays'] as num?)?.toInt() ?? 0;
+
+    final raw = u['bestTimes'];
+    bestTimes = {};
+    if (raw is Map) {
+      raw.forEach((key, value) {
+        bestTimes[Difficulty.fromName(key.toString())] = (value as num?)?.toInt();
+      });
+    }
+  }
+
+  /// Xóa dữ liệu tài khoản (khi đăng xuất), giữ cài đặt.
+  UserStats copySettingsOnly() {
+    return UserStats(
+      soundEnabled: soundEnabled,
+      hapticsEnabled: hapticsEnabled,
+      autoRemoveNotes: autoRemoveNotes,
+      highlightPeers: highlightPeers,
+      highlightMatchingNumbers: highlightMatchingNumbers,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'username': username,
       'playerName': playerName,
       'avatarUrl': avatarUrl,
       'streakDays': streakDays,
       'totalExp': totalExp,
+      'totalScore': totalScore,
+      'gamesPlayed': gamesPlayed,
       'puzzlesCompleted': puzzlesCompleted,
       'zeroMistakeGames': zeroMistakeGames,
       'bestTimes': bestTimes.map((k, v) => MapEntry(k.name, v)),
@@ -69,11 +109,14 @@ class UserStats {
     }
 
     return UserStats(
-      id: map['id'] as String?,
-      playerName: map['playerName'] as String? ?? 'Alex',
-      avatarUrl: map['avatarUrl'] as String? ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-      streakDays: map['streakDays'] as int? ?? 1,
+      id: map['id']?.toString() ?? '',
+      username: map['username'] as String? ?? '',
+      playerName: map['playerName'] as String? ?? 'Người chơi',
+      avatarUrl: map['avatarUrl'] as String? ?? defaultAvatar,
+      streakDays: map['streakDays'] as int? ?? 0,
       totalExp: map['totalExp'] as int? ?? 0,
+      totalScore: map['totalScore'] as int? ?? 0,
+      gamesPlayed: map['gamesPlayed'] as int? ?? 0,
       puzzlesCompleted: map['puzzlesCompleted'] as int? ?? 0,
       zeroMistakeGames: map['zeroMistakeGames'] as int? ?? 0,
       bestTimes: parsedBestTimes,

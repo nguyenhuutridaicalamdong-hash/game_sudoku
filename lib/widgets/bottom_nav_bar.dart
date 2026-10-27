@@ -13,36 +13,36 @@ class BottomNavBar extends StatelessWidget {
     required this.onTabSelected,
   });
 
+  static const _items = [
+    (Icons.cottage_rounded, 'Trang chủ', AppColors.primary),
+    (Icons.play_circle_rounded, 'Chơi', AppColors.pink),
+    (Icons.emoji_events_rounded, 'Xếp hạng', AppColors.amber),
+    (Icons.account_circle_rounded, 'Hồ sơ', AppColors.mint),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final items = [
-      {'icon': Icons.cottage_rounded, 'label': 'Home'},
-      {'icon': Icons.play_circle_rounded, 'label': 'Play'},
-      {'icon': Icons.emoji_events_rounded, 'label': 'Ranking'},
-      {'icon': Icons.account_circle_rounded, 'label': 'Profile'},
-    ];
-
     return Container(
-      margin: const EdgeInsets.only(left: 20, right: 20, bottom: 16),
-      height: 64,
+      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 14),
+      height: 68,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.96),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(36),
-        border: Border.all(color: AppColors.borderMedium.withOpacity(0.5)),
+        border: Border.all(color: AppColors.glossEdge, width: 2),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.12),
+            color: AppColors.primary.withOpacity(0.18),
             offset: const Offset(0, 10),
-            blurRadius: 30,
+            blurRadius: 26,
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(items.length, (index) {
+        children: List.generate(_items.length, (index) {
           final isSelected = (currentIndex == index);
-          final item = items[index];
+          final (icon, label, color) = _items[index];
 
           return GestureDetector(
             onTap: () {
@@ -50,16 +50,16 @@ class BottomNavBar extends StatelessWidget {
               onTabSelected(index);
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut, // không dùng easeOutBack: chạy lố làm bóng đổ âm → lỗi đỏ
+              padding: EdgeInsets.symmetric(horizontal: isSelected ? 14 : 10, vertical: 5),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primaryLight : Colors.transparent,
+                color: isSelected ? color.withOpacity(0.14) : Colors.transparent,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: AppColors.primaryLight.withOpacity(0.4),
+                          color: color.withOpacity(0.0),
                           offset: const Offset(0, 4),
                           blurRadius: 12,
                         ),
@@ -69,18 +69,14 @@ class BottomNavBar extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    item['icon'] as IconData,
-                    size: 22,
-                    color: isSelected ? Colors.white : AppColors.textSecondary,
-                  ),
-                  const SizedBox(height: 2),
+                  Icon(icon, size: isSelected ? 26 : 22, color: isSelected ? color : AppColors.textSecondary),
+                  const SizedBox(height: 1),
                   Text(
-                    item['label'] as String,
+                    label,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight: FontWeight.w900,
+                      color: isSelected ? color : AppColors.textSecondary,
                     ),
                   ),
                 ],

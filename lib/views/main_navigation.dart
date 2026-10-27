@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/game_provider.dart';
+import '../providers/ranking_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/colorful_background.dart';
 import '../widgets/custom_header.dart';
 import 'game/game_board_view.dart';
 import 'home/home_view.dart';
@@ -21,6 +24,13 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentTabIndex = 0;
 
+  void _selectTab(int index) {
+    setState(() => _currentTabIndex = index);
+    // Mở tab Xếp hạng / Hồ sơ thì tải lại dữ liệu mới nhất từ SQL Server
+    if (index == 2) context.read<RankingProvider>().refresh();
+    if (index == 3) context.read<UserProvider>().refreshProfile();
+  }
+
   @override
   Widget build(BuildContext context) {
     final gameProvider = context.watch<GameProvider>();
@@ -29,7 +39,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
+      body: ColorfulBackground(
+        child: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
@@ -41,9 +52,7 @@ class _MainNavigationState extends State<MainNavigation> {
                     if (!showVictory)
                       CustomHeader(
                         currentTabIndex: _currentTabIndex,
-                        onTabSelected: (index) {
-                          setState(() => _currentTabIndex = index);
-                        },
+                        onTabSelected: _selectTab,
                       ),
 
                     // Main Content Area
@@ -77,15 +86,14 @@ class _MainNavigationState extends State<MainNavigation> {
                     bottom: 0,
                     child: BottomNavBar(
                       currentIndex: _currentTabIndex,
-                      onTabSelected: (index) {
-                        setState(() => _currentTabIndex = index);
-                      },
+                      onTabSelected: _selectTab,
                     ),
                   ),
               ],
             ),
           ),
         ),
+      ),
       ),
     );
   }

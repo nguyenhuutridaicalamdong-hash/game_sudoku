@@ -3,31 +3,6 @@ import '../models/difficulty.dart';
 import '../models/sudoku_cell.dart';
 
 class SudokuGenerator {
-  // Pre-crafted master puzzle matching the exact Google Stitch mockup
-  static const List<List<int>> screenshotGivens = [
-    [5, 3, 0, 0, 7, 0, 0, 0, 0],
-    [6, 0, 0, 1, 9, 5, 0, 0, 0],
-    [0, 9, 8, 0, 0, 0, 0, 6, 0],
-    [8, 0, 0, 0, 6, 0, 0, 0, 3],
-    [4, 0, 0, 8, 0, 3, 0, 0, 1],
-    [7, 0, 0, 0, 2, 0, 0, 0, 6],
-    [0, 6, 0, 0, 0, 0, 2, 8, 0],
-    [0, 0, 0, 4, 1, 9, 0, 0, 5],
-    [0, 0, 0, 0, 8, 0, 0, 7, 9],
-  ];
-
-  static const List<List<int>> screenshotSolution = [
-    [5, 3, 4, 6, 7, 8, 9, 1, 2],
-    [6, 7, 2, 1, 9, 5, 3, 4, 8],
-    [1, 9, 8, 3, 4, 2, 5, 6, 7],
-    [8, 5, 9, 7, 6, 1, 4, 2, 3],
-    [4, 2, 6, 8, 5, 3, 7, 9, 1],
-    [7, 1, 3, 9, 2, 4, 8, 5, 6],
-    [9, 6, 1, 5, 3, 7, 2, 8, 4],
-    [2, 8, 7, 4, 1, 9, 6, 3, 5],
-    [3, 4, 5, 2, 8, 6, 1, 7, 9],
-  ];
-
   static bool isValidPlacement(List<List<int>> board, int row, int col, int num) {
     for (int c = 0; c < 9; c++) {
       if (board[row][c] == num) return false;
@@ -45,16 +20,17 @@ class SudokuGenerator {
     return true;
   }
 
-  static bool solveSudoku(List<List<int>> board) {
-    final random = Random();
+  /// Điền đầy bảng ngẫu nhiên bằng backtracking.
+  static bool solveSudoku(List<List<int>> board, [Random? random]) {
+    final rnd = random ?? Random();
     for (int r = 0; r < 9; r++) {
       for (int c = 0; c < 9; c++) {
         if (board[r][c] == 0) {
-          final nums = [1, 2, 3, 4, 5, 6, 7, 8, 9]..shuffle(random);
+          final nums = [1, 2, 3, 4, 5, 6, 7, 8, 9]..shuffle(rnd);
           for (final num in nums) {
             if (isValidPlacement(board, r, c, num)) {
               board[r][c] = num;
-              if (solveSudoku(board)) return true;
+              if (solveSudoku(board, rnd)) return true;
               board[r][c] = 0;
             }
           }
@@ -65,87 +41,142 @@ class SudokuGenerator {
     return true;
   }
 
-  static List<SudokuCell> generatePuzzle(Difficulty difficulty) {
-    final random = Random();
+  /// Đếm số lời giải của đề (dừng khi đạt [limit]). Dùng bitmask + chọn ô ít
+  /// ứng viên nhất trước (MRV) nên chạy rất nhanh.
+  /// [board] là mảng 81 phần tử, 0 = ô trống.
+  static int countSolutions(List<int> board, {int limit = 2}) {
+    final b = List<int>.from(board);
+    final rows = List<int>.filled(9, 0);
+    final cols = List<int>.filled(9, 0);
+    final boxes = List<int>.filled(9, 0);
+    final empties = <int>[];
 
-    // 40% chance on expert to use the exact screenshot puzzle
-    if (difficulty == Difficulty.expert && random.nextDouble() < 0.4) {
-      final cells = <SudokuCell>[];
-      for (int r = 0; r < 9; r++) {
-        for (int c = 0; c < 9; c++) {
-          final val = screenshotGivens[r][c];
-          final isGiven = val != 0;
-          cells.add(SudokuCell(
-            row: r,
-            col: c,
-            box: (r ~/ 3) * 3 + (c ~/ 3),
-            value: isGiven ? val : null,
-            solution: screenshotSolution[r][c],
-            isGiven: isGiven,
-            isError: false,
-          ));
+    for (int i = 0; i < 81; i++) {
+      final v = b[i];
+      final r = i ~/ 9, c = i % 9, bx = (r ~/ 3) * 3 + c ~/ 3;
+      if (v != 0) {
+        final m = 1 << v;
+        if ((rows[r] | cols[c] | boxes[bx]) & m != 0) return 0; // đề sai luật
+        rows[r] |= m;
+        cols[c] |= m;
+        boxes[bx] |= m;
+      } else {
+        empties.add(i);
+      }
+    }
+
+    int found = 0;
+
+    int bitCount(int m) {
+      int n = 0;
+      while (m != 0) {
+        m &= m - 1;
+        n++;
+      }
+      return n;
+    }
+
+    void search() {
+      if (found >= limit) return;
+      int best = -1, bestMask = 0, bestCount = 10;
+      for (final i in empties) {
+        if (b[i] != 0) continue;
+        final r = i ~/ 9, c = i % 9, bx = (r ~/ 3) * 3 + c ~/ 3;
+        final mask = ~(rows[r] | cols[c] | boxes[bx]) & 0x3FE;
+        final cnt = bitCount(mask);
+        if (cnt < bestCount) {
+          bestCount = cnt;
+          best = i;
+          bestMask = mask;
+          if (cnt == 0) return; // ngõ cụt
         }
       }
-      return cells;
-    }
-
-    // 1. Create fully solved 9x9 board
-    final fullBoard = List.generate(9, (_) => List.filled(9, 0));
-    solveSudoku(fullBoard);
-
-    final solutionCopy = List.generate(9, (r) => List<int>.from(fullBoard[r]));
-    final puzzleBoard = List.generate(9, (r) => List<int>.from(fullBoard[r]));
-
-    // 2. Determine number of clues to remove based on difficulty
-    int cluesToRemove;
-    switch (difficulty) {
-      case Difficulty.easy:
-        cluesToRemove = 36 + random.nextInt(4); // 36-39
-        break;
-      case Difficulty.medium:
-        cluesToRemove = 46 + random.nextInt(4); // 46-49
-        break;
-      case Difficulty.hard:
-        cluesToRemove = 52 + random.nextInt(3); // 52-54
-        break;
-      case Difficulty.expert:
-        cluesToRemove = 56 + random.nextInt(2); // 56-57
-        break;
-      case Difficulty.daily:
-        cluesToRemove = 45;
-        break;
-    }
-
-    // 3. Shuffle all (r, c) positions
-    final positions = <Point<int>>[];
-    for (int r = 0; r < 9; r++) {
-      for (int c = 0; c < 9; c++) {
-        positions.add(Point(r, c));
+      if (best == -1) {
+        found++; // đã điền hết
+        return;
+      }
+      final r = best ~/ 9, c = best % 9, bx = (r ~/ 3) * 3 + c ~/ 3;
+      for (int d = 1; d <= 9; d++) {
+        if (bestMask & (1 << d) == 0) continue;
+        final m = 1 << d;
+        b[best] = d;
+        rows[r] |= m;
+        cols[c] |= m;
+        boxes[bx] |= m;
+        search();
+        b[best] = 0;
+        rows[r] &= ~m;
+        cols[c] &= ~m;
+        boxes[bx] &= ~m;
+        if (found >= limit) return;
       }
     }
-    positions.shuffle(random);
 
-    for (int i = 0; i < cluesToRemove && i < positions.length; i++) {
-      final p = positions[i];
-      puzzleBoard[p.x][p.y] = 0;
+    search();
+    return found;
+  }
+
+  /// Sinh 1 đề có duy nhất 1 lời giải, cố gắng xóa còn khoảng [targetGivens] ô.
+  /// Trả về (đề, lời giải, số ô cho sẵn thực tế).
+  static (List<int>, List<int>, int) _generateOnce(int targetGivens, Random random) {
+    final full = List.generate(9, (_) => List.filled(9, 0));
+    solveSudoku(full, random);
+    final solution = [for (final row in full) ...row];
+    final puzzle = List<int>.from(solution);
+
+    final positions = List<int>.generate(81, (i) => i)..shuffle(random);
+    int givens = 81;
+    for (final p in positions) {
+      if (givens <= targetGivens) break;
+      final backup = puzzle[p];
+      puzzle[p] = 0;
+      if (countSolutions(puzzle) != 1) {
+        puzzle[p] = backup; // xóa ô này thì đề có nhiều lời giải → giữ lại
+      } else {
+        givens--;
+      }
+    }
+    return (puzzle, solution, givens);
+  }
+
+  static List<SudokuCell> generatePuzzle(Difficulty difficulty) {
+    // Thử thách ngày: cùng 1 ngày thì mọi người chơi cùng 1 đề
+    final now = DateTime.now();
+    final random = difficulty == Difficulty.daily
+        ? Random(now.year * 10000 + now.month * 100 + now.day)
+        : Random();
+
+    final (minGivens, maxGivens) = difficulty.givensRange;
+    final target = minGivens + random.nextInt(maxGivens - minGivens + 1);
+
+    // Cấp càng khó càng khó xóa đủ ô → thử nhiều lần, lấy đề tốt nhất
+    List<int>? bestPuzzle;
+    List<int>? bestSolution;
+    int bestGivens = 82;
+    for (int attempt = 0; attempt < 30; attempt++) {
+      final (puzzle, solution, givens) = _generateOnce(target, random);
+      if (givens < bestGivens) {
+        bestPuzzle = puzzle;
+        bestSolution = solution;
+        bestGivens = givens;
+      }
+      if (givens <= maxGivens) break;
     }
 
-    // 4. Construct cell list
     final cells = <SudokuCell>[];
-    for (int r = 0; r < 9; r++) {
-      for (int c = 0; c < 9; c++) {
-        final val = puzzleBoard[r][c];
-        final isGiven = val != 0;
-        cells.add(SudokuCell(
-          row: r,
-          col: c,
-          box: (r ~/ 3) * 3 + (c ~/ 3),
-          value: isGiven ? val : null,
-          solution: solutionCopy[r][c],
-          isGiven: isGiven,
-          isError: false,
-        ));
-      }
+    for (int i = 0; i < 81; i++) {
+      final r = i ~/ 9, c = i % 9;
+      final val = bestPuzzle![i];
+      final isGiven = val != 0;
+      cells.add(SudokuCell(
+        row: r,
+        col: c,
+        box: (r ~/ 3) * 3 + (c ~/ 3),
+        value: isGiven ? val : null,
+        solution: bestSolution![i],
+        isGiven: isGiven,
+        isError: false,
+      ));
     }
     return cells;
   }

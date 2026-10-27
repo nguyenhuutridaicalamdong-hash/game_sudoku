@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/app_colors.dart';
+import '../../widgets/colorful_background.dart';
 import '../../providers/game_provider.dart';
 import '../../services/audio_service.dart';
 import '../../services/sudoku_generator.dart';
@@ -27,12 +28,9 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
 
     // Create 45 confetti particles
     final colors = [
-      AppColors.primaryLight,
-      AppColors.amber,
+      ...AppColors.digitColors,
+      AppColors.yellow,
       AppColors.mint,
-      AppColors.primary,
-      const Color(0xFFFFB95F),
-      const Color(0xFFBFC1FF),
     ];
 
     for (int i = 0; i < 45; i++) {
@@ -80,16 +78,7 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
     final difficulty = gameProvider.victoryDifficulty;
     final isNewBest = gameProvider.isNewBestTime;
 
-    final baseScore = difficulty.label == 'Expert'
-        ? 1200
-        : difficulty.label == 'Hard'
-            ? 900
-            : difficulty.label == 'Medium'
-                ? 650
-                : 450;
-    final timeBonus = (600 - timeSeconds).clamp(0, 600);
-    final mistakePenalty = mistakes * 80;
-    final totalScore = (baseScore + timeBonus - mistakePenalty).clamp(100, 3000);
+    final totalScore = gameProvider.victoryScore;
 
     return Stack(
       children: [
@@ -110,7 +99,7 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.amber,
+                  gradient: AppColors.sunsetGradient,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
@@ -126,7 +115,7 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                     const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 18),
                     const SizedBox(width: 6),
                     Text(
-                      isNewBest ? 'NEW BEST TIME!' : 'PUZZLE SOLVED!',
+                      isNewBest ? 'KỶ LỤC MỚI!' : 'GIẢI XONG!',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w900,
@@ -145,9 +134,9 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                 width: 140,
                 height: 140,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  gradient: AppColors.rainbowGradient,
                   borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: AppColors.borderLight, width: 2),
+                  border: Border.all(color: AppColors.glossEdge, width: 3),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.amber.withOpacity(0.2),
@@ -162,7 +151,7 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                     height: 110,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFFFFDDB8), AppColors.amber],
+                        colors: [AppColors.yellow, AppColors.amber],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -179,16 +168,15 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
 
               const SizedBox(height: 20),
 
-              Text(
-                'Great Job! 🎉',
+              RainbowText(
+                'Tuyệt vời! 🎉',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 26,
+                  fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
                 ),
               ),
               Text(
-                'Sudoku ${difficulty.label} • Puzzle Completed!',
+                'Sudoku ${difficulty.label} • Đã hoàn thành!',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -205,12 +193,11 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        gradient: AppColors.oceanGradient,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.borderLight),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.06),
+                            color: AppColors.sky.withOpacity(0.4),
                             offset: const Offset(0, 4),
                             blurRadius: 12,
                           ),
@@ -221,29 +208,29 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
-                              color: AppColors.primarySoft,
+                              color: AppColors.surface,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.timer_outlined, color: AppColors.primary, size: 20),
+                            child: const Icon(Icons.timer_outlined, color: AppColors.sky, size: 20),
                           ),
                           const SizedBox(width: 10),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'TIME',
+                                'THỜI GIAN',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.textMuted,
+                                  color: Colors.white,
                                 ),
                               ),
                               Text(
                                 SudokuGenerator.formatTime(timeSeconds),
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w900,
-                                  color: AppColors.textPrimary,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -257,12 +244,11 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        gradient: AppColors.sunsetGradient,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.borderLight),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.amber.withOpacity(0.06),
+                            color: AppColors.pink.withOpacity(0.4),
                             offset: const Offset(0, 4),
                             blurRadius: 12,
                           ),
@@ -273,29 +259,29 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
-                              color: AppColors.amberContainer,
+                              color: AppColors.surface,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.star_rounded, color: AppColors.amberDark, size: 20),
+                            child: const Icon(Icons.star_rounded, color: AppColors.pink, size: 20),
                           ),
                           const SizedBox(width: 10),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'SCORE',
+                                'ĐIỂM',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.textMuted,
+                                  color: Colors.white,
                                 ),
                               ),
                               Text(
                                 '$totalScore',
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w900,
-                                  color: AppColors.textPrimary,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -313,9 +299,8 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  gradient: AppColors.limeGradient,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.borderMedium.withOpacity(0.5)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -325,7 +310,7 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                         const Icon(Icons.verified_rounded, color: AppColors.mintDark, size: 20),
                         const SizedBox(width: 8),
                         Text(
-                          mistakes == 0 ? 'Zero mistakes made' : '$mistakes mistakes made',
+                          mistakes == 0 ? 'Không sai lần nào! 💯' : 'Sai $mistakes lần',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -353,8 +338,8 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                 onPressed: () {
                   gameProvider.startGame(difficulty);
                 },
-                backgroundColor: AppColors.primary,
-                shadowColor: AppColors.primaryDark,
+                backgroundColor: AppColors.pink,
+                shadowColor: AppColors.pinkDark,
                 height: 58,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -362,7 +347,7 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                     const Icon(Icons.play_circle_rounded, color: Colors.white, size: 22),
                     const SizedBox(width: 8),
                     Text(
-                      'NEXT PUZZLE',
+                      'VÁN TIẾP THEO',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -383,15 +368,15 @@ class _VictoryViewState extends State<VictoryView> with SingleTickerProviderStat
                   gameProvider.backToHome();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceTint,
-                  foregroundColor: AppColors.textPrimary,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   elevation: 0,
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
                 icon: const Icon(Icons.home_rounded, size: 20),
                 label: Text(
-                  'Back to Home',
+                  'Về trang chủ',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,

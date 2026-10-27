@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/board_state.dart';
 import '../models/difficulty.dart';
+import '../models/sudoku_cell.dart';
+import '../widgets/box_celebration.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 import '../services/sudoku_generator.dart';
@@ -19,6 +21,15 @@ class GameProvider extends ChangeNotifier {
   int _victoryMistakes = 0;
   Difficulty _victoryDifficulty = Difficulty.medium;
   bool _isNewBestTime = false;
+  int _victoryScore = 0;
+
+  static const int maxHints = 3;
+
+  // Hiệu ứng hoàn thành khối 3x3 / hàng / cột
+  int _celebrationId = 0;
+  int _praiseIndex = 0;
+  List<Celebration> _celebrations = [];
+  static const _praises = ['Xuất sắc!', 'Tuyệt vời!', 'Quá đỉnh!', 'Hoàn hảo!', 'Giỏi quá!', 'Siêu ghê!'];
 
   BoardState? get gameState => _gameState;
   BoardState? get savedGame => _savedGame;
@@ -29,6 +40,53 @@ class GameProvider extends ChangeNotifier {
   int get victoryMistakes => _victoryMistakes;
   Difficulty get victoryDifficulty => _victoryDifficulty;
   bool get isNewBestTime => _isNewBestTime;
+  int get victoryScore => _victoryScore;
+
+  /// Số lần đã dùng gợi ý trong ván hiện tại (để trừ điểm).
+  int get _hintsUsed =>
+      _gameState == null ? 0 : (maxHints - _gameState!.hintsRemaining).clamp(0, maxHints);
+
+  /// Các hiệu ứng đang/đã chạy (mỗi cái có id riêng → bàn cờ chỉ chạy 1 lần).
+  List<Celebration> get celebrations => _celebrations;
+
+  bool _isGroupDone(bool Function(SudokuCell c) inGroup) {
+    return _gameState!.cells
+        .where(inGroup)
+        .every((c) => c.value != null && c.value == c.solution && !c.isError);
+  }
+
+  /// Gọi sau khi điền đúng ô [idx]: kiểm tra khối 3x3, hàng ngang, cột dọc chứa ô đó.
+  void _checkCompletions(int idx) {
+    if (_gameState == null) return;
+    final cell = _gameState!.cells[idx];
+
+    final done = <(CelebrationKind, int)>[
+      if (_isGroupDone((c) => c.box == cell.box)) (CelebrationKind.box, cell.box),
+      if (_isGroupDone((c) => c.row == cell.row)) (CelebrationKind.row, cell.row),
+      if (_isGroupDone((c) => c.col == cell.col)) (CelebrationKind.column, cell.col),
+    ];
+    if (done.isEmpty) return;
+
+    // Chỉ hiện chữ ở 1 vùng (ưu tiên khối) để không bị chồng chữ
+    final message = done.length > 1 ? 'Combo x${done.length}! 🔥' : _praises[_praiseIndex++ % _praises.length];
+
+    final added = <Celebration>[];
+    for (int i = 0; i < done.length; i++) {
+      _celebrationId++;
+      added.add(Celebration(
+        id: _celebrationId,
+        kind: done[i].$1,
+        index: done[i].$2,
+        message: i == 0 ? message : '',
+      ));
+    }
+    // Giữ vài hiệu ứng gần nhất (cái cũ đã chạy xong sẽ tự ẩn)
+    _celebrations = [..._celebrations, ...added];
+    if (_celebrations.length > 6) {
+      _celebrations = _celebrations.sublist(_celebrations.length - 6);
+    }
+    AudioService.playHint();
+  }
 
   GameProvider() {
     _loadSavedGame();
@@ -64,7 +122,7 @@ class GameProvider extends ChangeNotifier {
       timeSeconds: 0,
       mistakes: 0,
       maxMistakes: 3,
-      hintsRemaining: 3,
+      hintsRemaining: maxHints,
       isCompleted: false,
       isPaused: false,
       notesMode: false,
@@ -74,6 +132,7 @@ class GameProvider extends ChangeNotifier {
 
     _inGame = true;
     _showVictory = false;
+    _celebrations = [];
     _savedGame = _gameState;
     StorageService.saveCurrentGame(_gameState);
 
@@ -152,6 +211,7 @@ class GameProvider extends ChangeNotifier {
           difficulty: _gameState!.difficulty,
           timeSeconds: _gameState!.timeSeconds,
           mistakes: _gameState!.mistakes,
+          hintsUsed: _hintsUsed,
           isVictory: false,
         );
         _savedGame = null;
@@ -174,6 +234,8 @@ class GameProvider extends ChangeNotifier {
           _gameState!.cells[pIdx].notes.remove(digit);
         }
       }
+
+      _checkCompletions(idx);
 
       // Check win condition
       if (SudokuGenerator.isPuzzleSolved(_gameState!.cells)) {
@@ -198,10 +260,11 @@ class GameProvider extends ChangeNotifier {
     final prevBest = userProvider.stats.bestTimes[_victoryDifficulty];
     _isNewBestTime = (prevBest == null || _victoryTime < prevBest);
 
-    userProvider.recordGameResult(
+    _victoryScore = userProvider.recordGameResult(
       difficulty: _victoryDifficulty,
       timeSeconds: _victoryTime,
       mistakes: _victoryMistakes,
+      hintsUsed: _hintsUsed,
       isVictory: true,
     );
 
@@ -282,6 +345,8 @@ class GameProvider extends ChangeNotifier {
       }
     }
 
+    _checkCompletions(targetIndex);
+
     if (SudokuGenerator.isPuzzleSolved(_gameState!.cells)) {
       _handleVictory(userProvider);
       return;
@@ -300,6 +365,7 @@ class GameProvider extends ChangeNotifier {
 
   void quitGame() {
     _stopTimer();
+    _celebrations = [];
     _inGame = false;
     _showVictory = false;
     notifyListeners();
@@ -308,6 +374,17 @@ class GameProvider extends ChangeNotifier {
   void backToHome() {
     _showVictory = false;
     _inGame = false;
+    notifyListeners();
+  }
+
+  /// Xóa ván đang chơi (khi đăng xuất / đổi tài khoản).
+  void clearSavedGame() {
+    _stopTimer();
+    _gameState = null;
+    _savedGame = null;
+    _inGame = false;
+    _showVictory = false;
+    StorageService.saveCurrentGame(null);
     notifyListeners();
   }
 
@@ -323,4 +400,14 @@ class GameProvider extends ChangeNotifier {
     _stopTimer();
     super.dispose();
   }
+}
+
+/// 1 lần hoàn thành vùng (khối / hàng / cột) cần chạy hiệu ứng.
+class Celebration {
+  final int id;
+  final CelebrationKind kind;
+  final int index; // số thứ tự khối / hàng / cột (0-8)
+  final String message;
+
+  const Celebration({required this.id, required this.kind, required this.index, required this.message});
 }

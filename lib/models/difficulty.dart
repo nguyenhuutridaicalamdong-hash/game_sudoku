@@ -1,102 +1,204 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
+/// 6 cấp độ giống sudoku.com: Dễ → Cực khó (+ Thử thách hằng ngày).
+///
+/// LƯU Ý: baseScore / parTimeSeconds / computeScore / computeExp phải GIỐNG
+/// với backend/SudokuApi/Services/ScoreCalculator.cs
 enum Difficulty {
   easy,
   medium,
   hard,
   expert,
+  master,
+  extreme,
   daily;
+
+  /// Các cấp độ hiển thị ở màn hình chọn cấp độ (không gồm daily).
+  static const List<Difficulty> playable = [
+    Difficulty.easy,
+    Difficulty.medium,
+    Difficulty.hard,
+    Difficulty.expert,
+    Difficulty.master,
+    Difficulty.extreme,
+  ];
 
   String get label {
     switch (this) {
       case Difficulty.easy:
-        return 'Easy';
+        return 'Dễ';
       case Difficulty.medium:
-        return 'Medium';
+        return 'Trung bình';
       case Difficulty.hard:
-        return 'Hard';
+        return 'Khó';
       case Difficulty.expert:
-        return 'Expert';
+        return 'Chuyên gia';
+      case Difficulty.master:
+        return 'Bậc thầy';
+      case Difficulty.extreme:
+        return 'Cực khó';
       case Difficulty.daily:
-        return 'Daily Quest';
+        return 'Thử thách ngày';
     }
   }
 
   String get badgeText {
     switch (this) {
       case Difficulty.easy:
-        return 'Relax';
+        return 'Thư giãn';
       case Difficulty.medium:
-        return 'Normal';
+        return 'Bình thường';
       case Difficulty.hard:
-        return 'Challenge';
+        return 'Thử thách';
       case Difficulty.expert:
-        return 'Master';
+        return 'Cao thủ';
+      case Difficulty.master:
+        return 'Đỉnh cao';
+      case Difficulty.extreme:
+        return 'Huyền thoại';
       case Difficulty.daily:
-        return 'Special';
+        return 'Đặc biệt';
     }
   }
 
-  Color get cardBgColor {
+  /// Khoảng số ô cho sẵn (min, max). Càng ít ô cho sẵn càng khó.
+  /// Đề luôn được kiểm tra để chỉ có DUY NHẤT 1 lời giải.
+  (int, int) get givensRange {
     switch (this) {
       case Difficulty.easy:
-        return const Color(0xFF6FFBBE);
+        return (38, 40);
       case Difficulty.medium:
-        return const Color(0xFFDAE2FD);
+        return (32, 34);
       case Difficulty.hard:
-        return const Color(0xFFFFDDB8);
+        return (28, 30);
       case Difficulty.expert:
-        return const Color(0xFFE1E0FF);
+        return (26, 27);
+      case Difficulty.master:
+        return (24, 25);
+      case Difficulty.extreme:
+        return (22, 23);
       case Difficulty.daily:
-        return const Color(0xFFF2F3FF);
+        return (30, 32);
     }
   }
 
-  Color get textColor {
+  int get baseScore {
     switch (this) {
       case Difficulty.easy:
-        return const Color(0xFF002113);
+        return 400;
       case Difficulty.medium:
-        return const Color(0xFF131B2E);
+        return 650;
       case Difficulty.hard:
-        return const Color(0xFF2A1700);
+        return 900;
       case Difficulty.expert:
-        return const Color(0xFF03006D);
+        return 1200;
+      case Difficulty.master:
+        return 1500;
+      case Difficulty.extreme:
+        return 1800;
       case Difficulty.daily:
-        return const Color(0xFF131B2E);
+        return 800;
     }
   }
 
-  Color get badgeBgColor {
+  /// Thời gian chuẩn (giây): giải nhanh hơn thì được cộng điểm thưởng.
+  int get parTimeSeconds {
     switch (this) {
       case Difficulty.easy:
-        return const Color(0xFF006847);
+        return 300;
       case Difficulty.medium:
-        return AppColors.primary;
+        return 480;
       case Difficulty.hard:
-        return const Color(0xFF855300);
+        return 720;
       case Difficulty.expert:
-        return const Color(0xFF5B61F4);
+        return 900;
+      case Difficulty.master:
+        return 1200;
+      case Difficulty.extreme:
+        return 1500;
       case Difficulty.daily:
-        return AppColors.amber;
+        return 600;
     }
   }
 
-  Color get iconColor {
+  int computeScore({
+    required int timeSeconds,
+    required int mistakes,
+    required int hintsUsed,
+    required bool isCompleted,
+  }) {
+    if (!isCompleted) return 0;
+    final timeBonus = (parTimeSeconds - timeSeconds).clamp(0, parTimeSeconds);
+    final score = baseScore + timeBonus - mistakes * 80 - hintsUsed * 50;
+    return score.clamp(100, 5000);
+  }
+
+  static int computeExp({required int mistakes, required bool isCompleted}) {
+    if (!isCompleted) return 20;
+    return mistakes == 0 ? 150 : 100;
+  }
+
+  static Difficulty fromName(String? name) {
+    return Difficulty.values.firstWhere(
+      (d) => d.name == name,
+      orElse: () => Difficulty.medium,
+    );
+  }
+
+  /// Gradient tươi sáng cho thẻ cấp độ.
+  LinearGradient get gradient {
+    List<Color> colors;
     switch (this) {
       case Difficulty.easy:
-        return const Color(0xFF006847);
+        colors = const [Color(0xFF34D399), Color(0xFF059669)];
+        break;
       case Difficulty.medium:
-        return AppColors.primary;
+        colors = const [Color(0xFF38BDF8), Color(0xFF2563EB)];
+        break;
       case Difficulty.hard:
-        return const Color(0xFF855300);
+        colors = const [Color(0xFFFBBF24), Color(0xFFF97316)];
+        break;
       case Difficulty.expert:
-        return const Color(0xFF5B61F4);
+        colors = const [Color(0xFF818CF8), Color(0xFF4F46E5)];
+        break;
+      case Difficulty.master:
+        colors = const [Color(0xFFC084FC), Color(0xFF9333EA)];
+        break;
+      case Difficulty.extreme:
+        colors = const [Color(0xFFFB7185), Color(0xFFE11D48)];
+        break;
       case Difficulty.daily:
-        return AppColors.amber;
+        colors = const [Color(0xFFFFC145), Color(0xFFFF8A3D)];
+        break;
+    }
+    return LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight);
+  }
+
+  /// Màu nhấn đậm của cấp độ (chữ / viền / icon trên nền sáng).
+  Color get mainColor {
+    switch (this) {
+      case Difficulty.easy:
+        return const Color(0xFF059669);
+      case Difficulty.medium:
+        return const Color(0xFF2563EB);
+      case Difficulty.hard:
+        return const Color(0xFFEA580C);
+      case Difficulty.expert:
+        return const Color(0xFF4F46E5);
+      case Difficulty.master:
+        return const Color(0xFF9333EA);
+      case Difficulty.extreme:
+        return const Color(0xFFE11D48);
+      case Difficulty.daily:
+        return const Color(0xFFEA580C);
     }
   }
+
+  Color get cardBgColor => gradient.colors.last;
+  Color get textColor => AppColors.textPrimary;
+  Color get badgeBgColor => mainColor;
+  Color get iconColor => mainColor;
 
   IconData get icon {
     switch (this) {
@@ -108,6 +210,10 @@ enum Difficulty {
         return Icons.local_fire_department_rounded;
       case Difficulty.expert:
         return Icons.hotel_class_rounded;
+      case Difficulty.master:
+        return Icons.workspace_premium_rounded;
+      case Difficulty.extreme:
+        return Icons.bolt_rounded;
       case Difficulty.daily:
         return Icons.calendar_today_rounded;
     }

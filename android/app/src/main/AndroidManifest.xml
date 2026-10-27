@@ -1,8 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Cho phép gọi Web API -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="sudoku_flutter"
+        android:label="Sudoku Sắc Màu"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
