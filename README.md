@@ -1,80 +1,152 @@
-# 🧩 Sudoku Mindful Logic (Flutter Mobile Game)
+# 🧩 Sudoku Sắc Màu
 
-Dự án game Sudoku Mobile phát triển bằng **Flutter & Dart**, giữ nguyên 100% phong cách thiết kế giao diện Google Stitch (Mindful Pastel & 3D Tactile UI), được cấu trúc tối ưu cho **Đồ án môn Lập trình thiết bị di động (Nhóm 4 sinh viên)**.
+Game Sudoku trên điện thoại Android, viết bằng **Flutter**, có **đăng nhập**, **lưu điểm và bảng xếp hạng online** qua **Web API ASP.NET Core + SQL Server**, kèm **Góc giải trí** với 4 mini game xả stress.
 
----
+> Đồ án môn **Lập trình thiết bị di động** – Lớp 23DTHC4
 
-## 🚀 Hướng dẫn mở và chạy trên VS Code
-
-### 1. Mở dự án trong VS Code
-1. Mở **VS Code**.
-2. Chọn menu **File** -> **Open Folder...** (hoặc `Ctrl + K, Ctrl + O`).
-3. Chọn thư mục: `D:\sudoku_flutter`.
-4. Nếu chưa cài Flutter Extension trên VS Code, hãy vào tab **Extensions** (`Ctrl + Shift + X`) và cài đặt:
-   - **Flutter** (by Dart Code)
-   - **Dart** (by Dart Code)
-
-### 2. Chạy ứng dụng (Run / Debug)
-- **Cách 1 (Nhanh nhất)**: Nhấn phím `F5` trên bàn phím. VS Code sẽ tự động chạy cấu hình trong `.vscode/launch.json`.
-- **Cách 2 (Qua Terminal)**:
-  - Mở Terminal trong VS Code (`Ctrl + ~`).
-  - Chọn thiết bị muốn chạy:
-    ```bash
-    # Chạy trên điện thoại Android thật hoặc máy ảo Android
-    flutter run
-
-    # Chạy test nhanh trên Chrome
-    flutter run -d chrome
-
-    # Chạy trực tiếp trên máy tính Windows
-    flutter run -d windows
-    ```
+📱 **Tải APK:** [Releases – bản mới nhất](https://github.com/nguyenhuutridaicalamdong-hash/game_sudoku/releases/latest)
 
 ---
 
-## 📱 Cấu trúc thư mục mã nguồn (`lib/`)
+## 👥 Thành viên & phân công
 
-```
-lib/
-├── main.dart                 # Khởi chạy MultiProvider, Theme GoogleFonts & MaterialApp
-├── constants/
-│   └── app_colors.dart       # Toàn bộ mã màu chuẩn Stitch (#FAF8FF, #4145DA, #FEA619, #6FFBBE...)
-├── models/
-│   ├── difficulty.dart       # Enum Easy, Medium, Hard, Expert, Daily kèm màu sắc & icon
-│   ├── sudoku_cell.dart      # Dữ liệu ô cờ (row, col, value, solution, isGiven, notes...)
-│   ├── board_state.dart      # Trạng thái ván cờ, undo history stack
-│   ├── user_stats.dart       # Thông tin người chơi (Tên, level, EXP, streak, settings)
-│   └── game_record.dart      # Lịch sử từng ván đấu (Thời gian, độ khó, điểm số, ngày giờ)
-├── services/
-│   ├── sudoku_generator.dart # Thuật toán Backtracking sinh đề ngẫu nhiên & giải Sudoku
-│   ├── storage_service.dart  # Lưu trữ offline SharedPreferences (Tự động lưu ván dở & kỷ lục)
-│   └── audio_service.dart    # Hiệu ứng âm thanh click & rung phản hồi xúc giác (Haptic)
-├── providers/
-│   ├── game_provider.dart    # Quản lý toàn bộ vòng đời game, timer, undo, hint, win/loss
-│   ├── user_provider.dart    # Quản lý điểm số, EXP, cấp độ, lưu lịch sử ván đấu
-│   └── ranking_provider.dart # Quản lý bảng xếp hạng Master League
-├── widgets/
-│   ├── tactile_button.dart   # Nút bấm 3D nổi khối đổ bóng theo phong cách Stitch
-│   ├── custom_header.dart    # Thanh Header trên cùng (Logo, Sound toggle, Profile)
-│   └── bottom_nav_bar.dart   # Thanh điều hướng đáy nổi 4 tab bo tròn
-└── views/
-    ├── main_navigation.dart  # Scaffold chính điều phối tab và màn hình cờ/chiến thắng
-    ├── home/home_view.dart   # Màn hình Trang chủ (Streak, 3D tiles, Play button, Daily, Continue)
-    ├── play/play_view.dart   # Màn hình Chọn cấp độ cờ (Easy, Medium, Hard, Expert)
-    ├── game/game_board_view.dart # Bàn cờ 9x9 (Numpad 1-9, Notes, Undo, Erase, Hint, Pause)
-    ├── victory/victory_view.dart # Màn hình Chiến thắng (Pháo hoa Confetti Canvas, cúp vàng 3D)
-    ├── ranking/ranking_view.dart # Bảng xếp hạng Master League (This Week, All Time, Friends)
-    ├── profile/profile_view.dart # Hồ sơ cá nhân & cài đặt âm thanh, rung, highlight
-    └── history/history_view.dart # Lịch sử các ván cờ đã chơi (Chi tiết ngày, độ khó, điểm, thời gian)
-```
-
----
-
-## 👥 Phân chia công việc cho Nhóm 4 Sinh viên
-
-| Thành viên | Nhiệm vụ chính | Các file phụ trách |
+| Thành viên | Vai trò | Công việc chính |
 | :--- | :--- | :--- |
-| **Thành viên 1** | **Gameplay Engine & Thuật toán** | `lib/services/sudoku_generator.dart`, `lib/views/game/game_board_view.dart`, `lib/providers/game_provider.dart` |
-| **Thành viên 2** | **UI/UX & Hoạt ảnh ăn mừng** | `lib/views/home/home_view.dart`, `lib/views/play/play_view.dart`, `lib/views/victory/victory_view.dart` |
-| **Thành viên 3** | **Lịch sử ván cờ & Hệ thống Điểm/EXP** | `lib/views/history/history_view.dart`, `lib/models/game_record.dart`, `lib/services/storage_service.dart`, `lib/providers/user_provider.dart` |
-| **Thành viên 4** | **Bảng xếp hạng, Tài khoản & Build Android APK** | `lib/views/ranking/ranking_view.dart`, `lib/views/profile/profile_view.dart`, cấu hình Android Manifest & xuất APK |
+| **Nguyễn Hữu Trí** | Khởi tạo dự án & Gameplay | Tạo project Flutter, cấu trúc thư mục (models / providers / services / views), bàn cờ 9x9, bàn phím số, Ghi chú – Hoàn tác – Xóa – Gợi ý, màn hình Trang chủ / Chơi / Chiến thắng |
+| **Hà Phương Bình** | Lưu trữ & Bảng xếp hạng | Lưu trữ dữ liệu người chơi và lịch sử ván, đồng bộ dữ liệu đám mây (bản đầu dùng Firebase Firestore), màn hình Bảng xếp hạng, Lịch sử, Hồ sơ |
+| **Nguyễn Quốc Duy** | Backend, Cấp độ & Giao diện | Web API ASP.NET Core + SQL Server (JWT, điểm, lịch sử, xếp hạng), đăng ký / đăng nhập, 6 cấp độ + thuật toán sinh đề 1 lời giải, Việt hóa & giao diện mới, hiệu ứng, Góc giải trí, build APK & Dev Tunnel |
+
+---
+
+## ✨ Tính năng
+
+### Sudoku
+- **6 cấp độ** giống sudoku.com: Dễ · Trung bình · Khó · Chuyên gia · Bậc thầy · Cực khó (+ Thử thách ngày, cả server chung 1 đề)
+- Đề sinh ngẫu nhiên, **luôn chỉ có đúng 1 lời giải** (kiểm tra bằng thuật toán quay lui + bitmask)
+- Ghi chú, Hoàn tác, Xóa, Gợi ý (3 lần), tối đa 3 lỗi, đồng hồ, tạm dừng
+- Số điền **đúng màu xanh**, **sai màu đỏ**; tô sáng hàng / cột / khối và các số giống nhau
+- **Hiệu ứng** khi hoàn thành khối 3x3, hàng ngang, cột dọc (có **Combo**)
+- Tự lưu ván đang chơi, nút **Chơi tiếp** nổi bật khi có ván dở
+
+### Tài khoản & Online
+- **Đăng ký / đăng nhập** (mật khẩu mã hóa BCrypt, token JWT)
+- Điểm, EXP, cấp độ người chơi, chuỗi ngày chơi, thời gian tốt nhất từng cấp
+- **Lịch sử ván chơi** và **Bảng xếp hạng** Tuần này / Tháng này / Mọi lúc
+- Mất mạng vẫn chơi được, điểm **tự gửi lại** khi có kết nối
+- Đổi địa chỉ máy chủ ngay trong app (máy ảo / cùng Wi-Fi / Dev Tunnel)
+
+### 🎮 Góc giải trí
+| Game | Mô tả |
+| :--- | :--- |
+| 🫧 Bóp bóng khí | Bóp tấm giấy bóng khí, có rung nhẹ – xả stress |
+| 🃏 Lật thẻ trí nhớ | Tìm 8 cặp hình giống nhau, lưu kỷ lục ít lượt nhất |
+| ⚡ Bấm số thần tốc | Bấm 1 → 25 nhanh nhất, sai bị cộng 1 giây |
+| ❌ Cờ caro 3x3 | Đấu với máy, chế độ Dễ / Khó (Khó dùng minimax – máy không thua) |
+
+---
+
+## 🛠️ Công nghệ
+
+| Phần | Công nghệ |
+| :--- | :--- |
+| App di động | Flutter (Dart 3), Provider, SharedPreferences, http, Google Fonts |
+| Web API | ASP.NET Core 8 Web API, Entity Framework Core, JWT Bearer, BCrypt, Swagger |
+| Cơ sở dữ liệu | Microsoft SQL Server |
+| Chia sẻ máy chủ | Visual Studio Dev Tunnels |
+
+---
+
+## 🏗️ Kiến trúc
+
+```
+ ┌────────────────────┐   HTTP/JSON + JWT   ┌──────────────────────┐   EF Core   ┌──────────────┐
+ │   App Flutter      │ ──────────────────▶ │  SudokuApi           │ ──────────▶ │  SQL Server  │
+ │ (Provider, views)  │ ◀────────────────── │  (ASP.NET Core 8)    │ ◀────────── │ SudokuGameDb │
+ └────────────────────┘                     └──────────────────────┘             └──────────────┘
+   Sinh đề Sudoku ngay trên máy               Tính điểm, EXP, chuỗi ngày,
+   Lưu cache + ván dở (SharedPreferences)     bảng xếp hạng, tự sao lưu DB mỗi ngày
+```
+
+### Cơ sở dữ liệu
+
+**Users** — `Id`, `Username` (duy nhất), `PasswordHash`, `DisplayName`, `TotalExp`, `TotalScore`, `PuzzlesCompleted`, `GamesPlayed`, `ZeroMistakeGames`, `StreakDays`, `LastPlayedDate`, `CreatedAt`
+
+**GameRecords** — `Id`, `UserId` (FK → Users), `Difficulty`, `TimeSeconds`, `Mistakes`, `HintsUsed`, `Score`, `ExpEarned`, `IsCompleted`, `PlayedAt`
+
+Script SQL tham khảo: [`backend/Database/SudokuGameDb.sql`](backend/Database/SudokuGameDb.sql)
+
+### Các API chính
+
+| Method | URL | Mô tả |
+|---|---|---|
+| POST | `/api/auth/register` | Đăng ký |
+| POST | `/api/auth/login` | Đăng nhập, trả về token |
+| GET / PUT | `/api/auth/me` 🔒 | Xem / đổi thông tin của tôi |
+| POST | `/api/games` 🔒 | Lưu kết quả 1 ván |
+| GET | `/api/games/me` 🔒 | Lịch sử ván chơi |
+| GET | `/api/leaderboard?period=week\|month\|all` 🔒 | Bảng xếp hạng |
+| GET | `/api/health` | Kiểm tra máy chủ |
+
+Chi tiết + cách tính điểm: [`backend/README.md`](backend/README.md)
+
+---
+
+## 🚀 Cách chạy
+
+### 1. Web API (Visual Studio 2022, .NET 8)
+1. Mở `backend/SudokuApi/SudokuApi.csproj`
+2. Sửa `ConnectionStrings:DefaultConnection` trong `appsettings.json` cho đúng SQL Server trên máy
+   (vd `Server=.;...`, `Server=.\SQLEXPRESS;...` hoặc `Server=(localdb)\MSSQLLocalDB;...`)
+3. Chọn profile **`lan`** → bấm ▶. Lần đầu chạy API **tự tạo database** `SudokuGameDb`
+4. Swagger: `http://localhost:5260/swagger`
+
+### 2. App Flutter (Android Studio / VS Code)
+```bash
+flutter pub get
+flutter run
+```
+- Máy ảo Android gọi API qua `http://10.0.2.2:5260/api` (mặc định)
+- Điện thoại thật: bấm dòng **"Máy chủ: …"** ở màn hình đăng nhập để nhập địa chỉ khác
+
+### 3. Build APK
+```bash
+flutter build apk --release --split-per-abi --dart-define=API_URL=https://<link-dev-tunnel>/api
+```
+File ra: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`
+
+> Nếu project nằm ở ổ D mà pub cache ở ổ C, đã có sẵn `kotlin.incremental=false` trong `android/gradle.properties` để tránh lỗi *"different roots"*.
+
+---
+
+## 📁 Cấu trúc thư mục
+
+```
+game_sudoku/
+├── lib/                          # App Flutter
+│   ├── main.dart                 # Khởi tạo Provider, theme, màn hình Đăng nhập / vào game
+│   ├── constants/app_colors.dart # Bảng màu
+│   ├── models/                   # Difficulty, SudokuCell, BoardState, UserStats, GameRecord
+│   ├── providers/                # AuthProvider, GameProvider, UserProvider, RankingProvider
+│   ├── services/                 # SudokuGenerator, ApiService, ApiConfig, StorageService, AudioService
+│   ├── views/
+│   │   ├── auth/                 # Đăng nhập / Đăng ký
+│   │   ├── home/  play/  game/   # Trang chủ, Chọn cấp độ, Bàn cờ
+│   │   ├── victory/ history/     # Chiến thắng, Lịch sử
+│   │   ├── ranking/ profile/     # Bảng xếp hạng, Hồ sơ
+│   │   └── minigames/            # Góc giải trí (4 mini game)
+│   └── widgets/                  # Header, thanh điều hướng, nền động, hiệu ứng hoàn thành
+├── backend/
+│   ├── SudokuApi/                # Web API: Controllers, Models, Data, Dtos, Services
+│   ├── Database/SudokuGameDb.sql # Script tạo bảng (tham khảo)
+│   └── README.md                 # Hướng dẫn API
+├── test/widget_test.dart         # Test sinh đề (1 lời giải) & tính điểm
+└── android/ ios/ web/ ...        # Mã nền tảng của Flutter
+```
+
+---
+
+## 🧪 Kiểm thử
+```bash
+flutter test
+```
+Kiểm tra mọi cấp độ đều sinh đề hợp lệ, **duy nhất 1 lời giải**, và công thức tính điểm khớp với API.
