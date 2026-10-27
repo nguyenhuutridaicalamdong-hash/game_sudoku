@@ -47,6 +47,19 @@ class GameRecord {
     );
   }
 
+  /// Tạo từ JSON GameRecordDto của Web API.
+  factory GameRecord.fromServer(Map<String, dynamic> map) {
+    return GameRecord(
+      id: map['id'].toString(),
+      dateTime: DateTime.parse(map['playedAt'] as String).toLocal(),
+      difficulty: Difficulty.fromName(map['difficulty'] as String?),
+      timeSeconds: (map['timeSeconds'] as num).toInt(),
+      mistakes: (map['mistakes'] as num).toInt(),
+      score: (map['score'] as num).toInt(),
+      isCompleted: map['isCompleted'] as bool,
+    );
+  }
+
   String toJson() => jsonEncode(toMap());
 
   factory GameRecord.fromJson(String source) =>

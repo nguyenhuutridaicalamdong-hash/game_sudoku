@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/user_provider.dart';
 import '../../services/sudoku_generator.dart';
+import '../../widgets/colorful_background.dart';
 
 class HistoryView extends StatelessWidget {
   const HistoryView({super.key});
@@ -16,31 +17,38 @@ class HistoryView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        flexibleSpace: Container(decoration: const BoxDecoration(gradient: AppColors.berryGradient)),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Game History',
+          'Lịch sử ván chơi 📜',
           style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
             fontSize: 18,
           ),
         ),
         centerTitle: true,
       ),
-      body: history.isEmpty
-          ? Center(
+      body: ColorfulBackground(
+        child: RefreshIndicator(
+        onRefresh: userProvider.refreshHistory,
+        child: history.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+              const SizedBox(height: 120),
+              Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.history_rounded, size: 64, color: AppColors.textMuted),
                   const SizedBox(height: 12),
                   Text(
-                    'No game records yet',
+                    'Chưa có ván nào',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -49,7 +57,7 @@ class HistoryView extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Complete a puzzle to see your history here!',
+                    'Chơi xong 1 ván để xem lịch sử ở đây nhé!',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: AppColors.textMuted,
@@ -57,6 +65,8 @@ class HistoryView extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+              ],
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -70,12 +80,12 @@ class HistoryView extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.borderLight),
+                    border: Border(left: BorderSide(color: record.difficulty.mainColor, width: 6)),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.04),
+                        color: record.difficulty.mainColor.withOpacity(0.25),
                         offset: const Offset(0, 4),
                         blurRadius: 12,
                       ),
@@ -115,7 +125,7 @@ class HistoryView extends StatelessWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary,
+                                      color: record.difficulty.mainColor,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -123,15 +133,15 @@ class HistoryView extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: record.difficulty.cardBgColor,
+                                      gradient: record.difficulty.gradient,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      record.isCompleted ? 'Solved' : 'Failed',
+                                      record.isCompleted ? 'Thắng' : 'Thua',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w900,
-                                        color: record.difficulty.textColor,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ),
@@ -153,15 +163,15 @@ class HistoryView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '+${record.score} pts',
+                            '+${record.score} điểm',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.primary,
+                              color: AppColors.pink,
                             ),
                           ),
                           Text(
-                            'Time: ${SudokuGenerator.formatTime(record.timeSeconds)}',
+                            '⏱ ${SudokuGenerator.formatTime(record.timeSeconds)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -175,6 +185,8 @@ class HistoryView extends StatelessWidget {
                 );
               },
             ),
+      ),
+      ),
     );
   }
 }

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/ranking_provider.dart';
-import '../../providers/user_provider.dart';
 import '../../services/audio_service.dart';
 
 class RankingView extends StatelessWidget {
@@ -12,11 +11,18 @@ class RankingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rankingProvider = context.watch<RankingProvider>();
-    final userProvider = context.watch<UserProvider>();
-    final players = rankingProvider.getLeaderboard(userProvider);
+    final players = rankingProvider.players;
     final activeTab = rankingProvider.activeTab;
 
-    return SingleChildScrollView(
+    // Lần đầu mở tab thì tải dữ liệu
+    if (!rankingProvider.hasData && !rankingProvider.isLoading && rankingProvider.error == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => rankingProvider.refresh());
+    }
+
+    return RefreshIndicator(
+      onRefresh: rankingProvider.refresh,
+      child: SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 90),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -25,11 +31,7 @@ class RankingView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryLight],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppColors.berryGradient,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -47,10 +49,10 @@ class RankingView extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.emoji_events_rounded, color: AppColors.amber, size: 28),
+                        const Icon(Icons.emoji_events_rounded, color: AppColors.yellow, size: 30),
                         const SizedBox(width: 8),
                         Text(
-                          'Master League',
+                          'Bảng xếp hạng',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
@@ -62,11 +64,11 @@ class RankingView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: AppColors.surface.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'Ends in 2d 14h',
+                        'Kéo xuống để làm mới',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
@@ -78,7 +80,7 @@ class RankingView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Top 3 players advance to Diamond League and earn rare golden avatars!',
+                  'Xếp theo tổng điểm các ván đã giải. Cấp càng khó, giải càng nhanh, càng ít lỗi thì càng nhiều điểm!',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.85),
@@ -94,29 +96,67 @@ class RankingView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.borderLight,
+              color: AppColors.surface.withOpacity(0.7),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
               children: [
-                _buildTabButton('weekly', 'This Week', activeTab, rankingProvider),
-                _buildTabButton('allTime', 'All Time', activeTab, rankingProvider),
-                _buildTabButton('friends', 'Friends', activeTab, rankingProvider),
+                _buildTabButton('week', 'Tuần này', activeTab, rankingProvider),
+                _buildTabButton('month', 'Tháng này', activeTab, rankingProvider),
+                _buildTabButton('all', 'Mọi lúc', activeTab, rankingProvider),
               ],
             ),
           ),
 
           const SizedBox(height: 14),
 
-          // Leaderboard Players List
-          Column(
-            children: players.map((player) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _buildPlayerRow(player),
-              );
-            }).toList(),
+          if (rankingProvider.isLoading && players.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (rankingProvider.error != null && players.isEmpty)
+            _buildMessage(rankingProvider.error!, onRetry: rankingProvider.refresh)
+          else if (players.isEmpty)
+            _buildMessage('Chưa có ai ghi điểm trong khoảng thời gian này. Hãy là người đầu tiên!')
+          else
+            // Leaderboard Players List
+            Column(
+              children: players.map((player) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildPlayerRow(player),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  Widget _buildMessage(String text, {Future<void> Function()? onRetry}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 12),
+      child: Column(
+        children: [
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
           ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Thử lại'),
+            ),
+          ],
         ],
       ),
     );
@@ -133,7 +173,7 @@ class RankingView extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            gradient: isSelected ? AppColors.sunsetGradient : null,
             borderRadius: BorderRadius.circular(14),
             boxShadow: isSelected
                 ? [
@@ -151,7 +191,7 @@ class RankingView extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                color: isSelected ? Colors.white : AppColors.textSecondary,
               ),
             ),
           ),
@@ -165,17 +205,32 @@ class RankingView extends StatelessWidget {
     if (player.rank == 1) {
       rankColor = AppColors.amber;
     } else if (player.rank == 2) {
-      rankColor = const Color(0xFF767586);
+      rankColor = const Color(0xFF8A8FB0);
     } else if (player.rank == 3) {
       rankColor = AppColors.amberDark;
     } else {
       rankColor = AppColors.textSecondary;
     }
 
+    const podium = [
+      LinearGradient(colors: [Color(0xFFFFF6D6), Color(0xFFFFD86B)]), // vàng
+      LinearGradient(colors: [Color(0xFFF4F6FA), Color(0xFFD5DBE6)]), // bạc
+      LinearGradient(colors: [Color(0xFFFFEBDD), Color(0xFFF5B489)]), // đồng
+    ];
+    final rowGradient = player.rank <= 3 ? podium[player.rank - 1] : null;
+    final medal = player.rank == 1
+        ? '🥇'
+        : player.rank == 2
+            ? '🥈'
+            : player.rank == 3
+                ? '🥉'
+                : null;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: player.isCurrentUser ? AppColors.primarySoft : Colors.white,
+        gradient: rowGradient,
+        color: rowGradient != null ? null : (player.isCurrentUser ? AppColors.primarySoft : AppColors.surface.withOpacity(0.92)),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: player.isCurrentUser ? AppColors.primary : AppColors.borderLight,
@@ -197,7 +252,7 @@ class RankingView extends StatelessWidget {
               SizedBox(
                 width: 24,
                 child: Text(
-                  '${player.rank}',
+                  medal ?? '${player.rank}',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
@@ -209,14 +264,21 @@ class RankingView extends StatelessWidget {
               const SizedBox(width: 10),
               CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(player.avatar),
+                backgroundColor: player.isCurrentUser ? AppColors.primary : AppColors.primarySoft,
+                child: Text(
+                  player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    color: player.isCurrentUser ? Colors.white : AppColors.primary,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    player.name,
+                    player.isCurrentUser ? '${player.name} (Bạn)' : player.name,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -224,7 +286,7 @@ class RankingView extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '🔥 ${player.streak}d streak • ${player.badge}',
+                    '🔥 ${player.streak} ngày • ${player.gamesWon} ván thắng',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -239,7 +301,7 @@ class RankingView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${player.exp}',
+                '${player.score}',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -247,7 +309,7 @@ class RankingView extends StatelessWidget {
                 ),
               ),
               Text(
-                'EXP',
+                'ĐIỂM',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 9,
                   fontWeight: FontWeight.w800,

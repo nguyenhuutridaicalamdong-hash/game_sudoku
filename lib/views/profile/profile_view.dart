@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/app_colors.dart';
 import '../../models/difficulty.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/ranking_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/audio_service.dart';
 import '../../services/sudoku_generator.dart';
@@ -10,6 +12,8 @@ import '../history/history_view.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
+
+  static const List<Difficulty> _bestTimeLevels = Difficulty.playable;
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +29,9 @@ class ProfileView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.borderLight),
+              gradient: AppColors.berryGradient,
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: AppColors.glossEdge, width: 2),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primary.withOpacity(0.06),
@@ -40,8 +44,15 @@ class ProfileView extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: AppColors.primarySoft,
-                  backgroundImage: NetworkImage(stats.avatarUrl),
+                  backgroundColor: AppColors.surfaceVariant,
+                  child: Text(
+                    stats.playerName.isNotEmpty ? stats.playerName[0].toUpperCase() : '?',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.pink,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -55,27 +66,32 @@ class ProfileView extends StatelessWidget {
                             onTap: () => _showEditNameDialog(context, userProvider),
                             child: Row(
                               children: [
-                                Text(
-                                  stats.playerName,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 150),
+                                  child: Text(
+                                    stats.playerName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                const Icon(Icons.edit_rounded, size: 14, color: AppColors.primary),
+                                const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
                               ],
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppColors.amberContainer,
+                              color: AppColors.yellow,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              'LVL ${stats.level}',
+                              'CẤP ${stats.level}',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
@@ -87,10 +103,11 @@ class ProfileView extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Mindful Logic Enthusiast',
+                        '@${stats.username} • ${stats.totalScore} điểm',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -99,8 +116,8 @@ class ProfileView extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: stats.levelProgress,
                           minHeight: 6,
-                          backgroundColor: AppColors.borderLight,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryLight),
+                          backgroundColor: Colors.white.withOpacity(0.35),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.yellow),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -111,16 +128,16 @@ class ProfileView extends StatelessWidget {
                             'EXP ${stats.totalExp}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
                             ),
                           ),
                           Text(
-                            'NEXT LVL: ${(stats.level * 250)}',
+                            'CẤP TIẾP: ${(stats.level * 250)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -137,11 +154,11 @@ class ProfileView extends StatelessWidget {
           // Highlights 3 Cards Grid: Solved, Flawless, Streak
           Row(
             children: [
-              _buildStatHighlightCard('${stats.puzzlesCompleted}', 'SOLVED', AppColors.primary),
+              _buildStatHighlightCard('${stats.puzzlesCompleted}', 'ĐÃ GIẢI', AppColors.oceanGradient),
               const SizedBox(width: 10),
-              _buildStatHighlightCard('${stats.zeroMistakeGames}', 'FLAWLESS', AppColors.mintDark),
+              _buildStatHighlightCard('${stats.zeroMistakeGames}', 'KHÔNG LỖI', AppColors.limeGradient),
               const SizedBox(width: 10),
-              _buildStatHighlightCard('🔥 ${stats.streakDays}d', 'STREAK', AppColors.amber),
+              _buildStatHighlightCard('🔥 ${stats.streakDays}', 'CHUỖI NGÀY', AppColors.sunsetGradient),
             ],
           ),
 
@@ -151,7 +168,7 @@ class ProfileView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: AppColors.borderLight),
               boxShadow: [
@@ -170,7 +187,7 @@ class ProfileView extends StatelessWidget {
                     const Icon(Icons.timer_outlined, size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
-                      'Personal Best Times',
+                      'Thời gian tốt nhất',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -180,21 +197,18 @@ class ProfileView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildBestTimeTile('Easy', stats.bestTimes[Difficulty.easy], AppColors.mintContainer, AppColors.mintDark),
-                    const SizedBox(width: 8),
-                    _buildBestTimeTile('Medium', stats.bestTimes[Difficulty.medium], AppColors.primarySoft, AppColors.primary),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildBestTimeTile('Hard', stats.bestTimes[Difficulty.hard], AppColors.amberContainer, AppColors.amberDark),
-                    const SizedBox(width: 8),
-                    _buildBestTimeTile('Expert', stats.bestTimes[Difficulty.expert], AppColors.surfaceTint, const Color(0xFF03006D)),
-                  ],
-                ),
+                for (int i = 0; i < _bestTimeLevels.length; i += 2) ...[
+                  if (i > 0) const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildBestTimeTile(_bestTimeLevels[i].label, stats.bestTimes[_bestTimeLevels[i]],
+                          _bestTimeLevels[i].gradient),
+                      const SizedBox(width: 8),
+                      _buildBestTimeTile(_bestTimeLevels[i + 1].label, stats.bestTimes[_bestTimeLevels[i + 1]],
+                          _bestTimeLevels[i + 1].gradient),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -210,7 +224,7 @@ class ProfileView extends StatelessWidget {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.surfaceVariant,
               foregroundColor: AppColors.primary,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -224,7 +238,7 @@ class ProfileView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'View Match History',
+                  'Xem lịch sử ván chơi',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -241,7 +255,7 @@ class ProfileView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: AppColors.borderLight),
               boxShadow: [
@@ -260,7 +274,7 @@ class ProfileView extends StatelessWidget {
                     const Icon(Icons.tune_rounded, size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
-                      'Gameplay Preferences',
+                      'Cài đặt chơi',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -271,32 +285,32 @@ class ProfileView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 _buildPreferenceSwitch(
-                  title: 'Tactile Sound FX',
-                  subtitle: 'Soothing audio chime clicks',
+                  title: 'Âm thanh',
+                  subtitle: 'Tiếng click khi bấm',
                   value: stats.soundEnabled,
                   onChanged: (_) => userProvider.toggleSound(),
                 ),
                 _buildPreferenceSwitch(
-                  title: 'Haptic Vibration',
-                  subtitle: 'Tactile tap pushback on supported devices',
+                  title: 'Rung',
+                  subtitle: 'Rung nhẹ khi chạm (nếu máy hỗ trợ)',
                   value: stats.hapticsEnabled,
                   onChanged: (_) => userProvider.toggleHaptics(),
                 ),
                 _buildPreferenceSwitch(
-                  title: 'Auto-remove Pencil Notes',
-                  subtitle: 'Erase peer candidates when solved',
+                  title: 'Tự xóa ghi chú',
+                  subtitle: 'Xóa ghi chú trùng khi điền đúng số',
                   value: stats.autoRemoveNotes,
                   onChanged: (_) => userProvider.toggleAutoRemoveNotes(),
                 ),
                 _buildPreferenceSwitch(
-                  title: 'Highlight Row, Column & Block',
-                  subtitle: 'Soft periwinkle peer wash',
+                  title: 'Tô sáng hàng, cột, khối',
+                  subtitle: 'Tô màu các ô liên quan đến ô đang chọn',
                   value: stats.highlightPeers,
                   onChanged: (_) => userProvider.toggleHighlightPeers(),
                 ),
                 _buildPreferenceSwitch(
-                  title: 'Highlight Matching Digits',
-                  subtitle: 'Highlight all occurrences of active number',
+                  title: 'Tô sáng số giống nhau',
+                  subtitle: 'Tô tất cả ô có cùng số với ô đang chọn',
                   value: stats.highlightMatchingNumbers,
                   onChanged: (_) => userProvider.toggleHighlightMatchingNumbers(),
                 ),
@@ -309,9 +323,9 @@ class ProfileView extends StatelessWidget {
           // Reset Data Button
           Center(
             child: TextButton(
-              onPressed: () => _showResetDialog(context, userProvider),
+              onPressed: () => _showLogoutDialog(context),
               child: Text(
-                'Reset Statistics & Game Data',
+                'Đăng xuất',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -325,17 +339,16 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatHighlightCard(String value, String label, Color valueColor) {
+  Widget _buildStatHighlightCard(String value, String label, LinearGradient gradient) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: gradient,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.borderLight),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.04),
+              color: gradient.colors.first.withOpacity(0.4),
               offset: const Offset(0, 4),
               blurRadius: 10,
             ),
@@ -346,9 +359,9 @@ class ProfileView extends StatelessWidget {
             Text(
               value,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.w900,
-                color: valueColor,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 2),
@@ -356,8 +369,8 @@ class ProfileView extends StatelessWidget {
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 9,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textMuted,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
               ),
             ),
           ],
@@ -366,12 +379,13 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildBestTimeTile(String label, int? seconds, Color bg, Color textColor) {
+  Widget _buildBestTimeTile(String label, int? seconds, LinearGradient gradient) {
+    const textColor = Colors.white;
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: bg,
+          gradient: gradient,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -434,7 +448,7 @@ class ProfileView extends StatelessWidget {
           ),
           Switch(
             value: value,
-            activeColor: AppColors.primary,
+            activeColor: AppColors.pink,
             onChanged: (v) {
               AudioService.playTap();
               onChanged(v);
@@ -453,32 +467,37 @@ class ProfileView extends StatelessWidget {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(
-            'Edit Player Name',
+            'Đổi tên hiển thị',
             style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
           ),
           content: TextField(
             controller: controller,
             decoration: InputDecoration(
-              hintText: 'Enter your name',
+              hintText: 'Nhập tên của bạn',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: const Text('Hủy'),
             ),
             ElevatedButton(
-              onPressed: () {
-                provider.setPlayerName(controller.text);
-                Navigator.of(context).pop();
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+                final error = await provider.setPlayerName(controller.text);
+                navigator.pop();
+                messenger.showSnackBar(
+                  SnackBar(content: Text(error ?? 'Đã lưu tên mới')),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Save'),
+              child: const Text('Lưu'),
             ),
           ],
         );
@@ -486,39 +505,37 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  void _showResetDialog(BuildContext context, UserProvider provider) {
+  void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(
-            'Reset Data?',
-            style: GoogleFonts.plusJakartaSans(
-              fontWeight: FontWeight.w800,
-              color: AppColors.error,
-            ),
+            'Đăng xuất?',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
           ),
           content: Text(
-            'This will clear your puzzles solved, EXP, best times, and game history. Are you sure?',
+            'Điểm của bạn đã được lưu trên máy chủ. Ván đang chơi dở sẽ bị xóa.',
             style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Hủy'),
             ),
             ElevatedButton(
               onPressed: () {
-                provider.resetAllData();
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
+                context.read<RankingProvider>().invalidate();
+                context.read<AuthProvider>().logout();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Reset Everything'),
+              child: const Text('Đăng xuất'),
             ),
           ],
         );
