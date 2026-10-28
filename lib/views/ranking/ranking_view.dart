@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/app_colors.dart';
+import '../../models/difficulty.dart';
 import '../../providers/ranking_provider.dart';
 import '../../services/audio_service.dart';
+import '../../services/sudoku_generator.dart';
 
 class RankingView extends StatelessWidget {
   const RankingView({super.key});
@@ -125,7 +127,7 @@ class RankingView extends StatelessWidget {
               children: players.map((player) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: _buildPlayerRow(player),
+                  child: _buildPlayerRow(context, player),
                 );
               }).toList(),
             ),
@@ -200,7 +202,37 @@ class RankingView extends StatelessWidget {
     );
   }
 
-  Widget _buildPlayerRow(LeaderboardPlayer player) {
+  /// "1g 05p", "12p 30s" — gọn để vừa 1 dòng.
+  String _formatDuration(int seconds) {
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    final sec = seconds % 60;
+    if (h > 0) return '${h}g ${m.toString().padLeft(2, '0')}p';
+    if (m > 0) return '${m}p ${sec.toString().padLeft(2, '0')}s';
+    return '${sec}s';
+  }
+
+  /// Chip nhỏ "Khó ×2" tô màu theo cấp độ.
+  Widget _levelChip(Difficulty d, int count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: d.mainColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: d.mainColor.withOpacity(0.45)),
+      ),
+      child: Text(
+        '${d.label} ×$count',
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: d.mainColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayerRow(BuildContext context, LeaderboardPlayer player) {
     Color rankColor;
     if (player.rank == 1) {
       rankColor = AppColors.amber;
@@ -225,32 +257,38 @@ class RankingView extends StatelessWidget {
             : player.rank == 3
                 ? '🥉'
                 : null;
+    final levels = player.solvedLevels;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: rowGradient,
-        color: rowGradient != null ? null : (player.isCurrentUser ? AppColors.primarySoft : AppColors.surface.withOpacity(0.92)),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: player.isCurrentUser ? AppColors.primary : AppColors.borderLight,
-          width: player.isCurrentUser ? 1.8 : 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(player.isCurrentUser ? 0.08 : 0.03),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
+    return GestureDetector(
+      onTap: () {
+        AudioService.playTap();
+        _showPlayerDetail(context, player);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: rowGradient,
+          color: rowGradient != null ? null : (player.isCurrentUser ? AppColors.primarySoft : AppColors.surface.withOpacity(0.92)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: player.isCurrentUser ? AppColors.primary : AppColors.borderLight,
+            width: player.isCurrentUser ? 1.8 : 1.0,
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 24,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(player.isCurrentUser ? 0.08 : 0.03),
+              offset: const Offset(0, 4),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 24,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
                 child: Text(
                   medal ?? '${player.rank}',
                   textAlign: TextAlign.center,
@@ -261,24 +299,28 @@ class RankingView extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: player.isCurrentUser ? AppColors.primary : AppColors.primarySoft,
-                child: Text(
-                  player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w900,
-                    color: player.isCurrentUser ? Colors.white : AppColors.primary,
-                  ),
+            ),
+            const SizedBox(width: 10),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: player.isCurrentUser ? AppColors.primary : AppColors.primarySoft,
+              child: Text(
+                player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  color: player.isCurrentUser ? Colors.white : AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 12),
-              Column(
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     player.isCurrentUser ? '${player.name} (Bạn)' : player.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -286,40 +328,172 @@ class RankingView extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '🔥 ${player.streak} ngày • ${player.gamesWon} ván thắng',
+                    '🔥 ${player.streak} ngày • ${player.gamesWon} ván thắng • ⏱ ${_formatDuration(player.totalTimeSeconds)}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textSecondary,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  // Các cấp độ đã giải
+                  if (levels.isEmpty)
+                    Text(
+                      'Chưa giải ván nào',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.textMuted,
+                      ),
+                    )
+                  else
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        for (final d in levels) _levelChip(d, player.solved[d] ?? 0),
+                      ],
+                    ),
                 ],
               ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${player.score}',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${player.score}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                  ),
                 ),
-              ),
-              Text(
-                'ĐIỂM',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textMuted,
+                Text(
+                  'ĐIỂM',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMuted,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 6),
+                const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textMuted),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  /// Bảng chi tiết khi chạm vào 1 người chơi: số ván + thời gian tốt nhất từng cấp độ.
+  void _showPlayerDetail(BuildContext context, LeaderboardPlayer player) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.borderMedium,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '#${player.rank}  ${player.name}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                '${player.score} điểm • ${player.gamesWon} ván thắng • tổng ⏱ ${_formatDuration(player.totalTimeSeconds)}',
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              // Tiêu đề cột
+              Row(
+                children: [
+                  Expanded(child: Text('CẤP ĐỘ', style: _headerStyle)),
+                  SizedBox(width: 70, child: Text('ĐÃ GIẢI', textAlign: TextAlign.center, style: _headerStyle)),
+                  SizedBox(width: 90, child: Text('TỐT NHẤT', textAlign: TextAlign.end, style: _headerStyle)),
+                ],
+              ),
+              const Divider(height: 14),
+              for (final d in Difficulty.values)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(d.icon, size: 18, color: d.mainColor),
+                            const SizedBox(width: 8),
+                            Text(
+                              d.label,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: (player.solved[d] ?? 0) > 0 ? AppColors.textPrimary : AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        width: 70,
+                        child: Text(
+                          '${player.solved[d] ?? 0}',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: (player.solved[d] ?? 0) > 0 ? d.mainColor : AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          player.bestTimes[d] != null ? SudokuGenerator.formatTime(player.bestTimes[d]!) : '--:--',
+                          textAlign: TextAlign.end,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: player.bestTimes[d] != null ? AppColors.textPrimary : AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  TextStyle get _headerStyle => GoogleFonts.plusJakartaSans(
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.5,
+        color: AppColors.textMuted,
+      );
 }
