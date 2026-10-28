@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/difficulty.dart';
 import '../services/api_service.dart';
 
 class LeaderboardPlayer {
@@ -9,6 +10,15 @@ class LeaderboardPlayer {
   final int streak;
   final bool isCurrentUser;
 
+  /// Tổng thời gian (giây) các ván đã giải trong kỳ.
+  final int totalTimeSeconds;
+
+  /// Số ván đã giải theo từng cấp độ.
+  final Map<Difficulty, int> solved;
+
+  /// Thời gian tốt nhất (giây) theo từng cấp độ.
+  final Map<Difficulty, int> bestTimes;
+
   LeaderboardPlayer({
     required this.rank,
     required this.name,
@@ -16,7 +26,26 @@ class LeaderboardPlayer {
     required this.gamesWon,
     required this.streak,
     this.isCurrentUser = false,
+    this.totalTimeSeconds = 0,
+    this.solved = const {},
+    this.bestTimes = const {},
   });
+
+  /// Các cấp độ đã giải, xếp theo thứ tự Dễ → Cực khó (Thử thách ngày ở cuối).
+  List<Difficulty> get solvedLevels => Difficulty.values.where((d) => (solved[d] ?? 0) > 0).toList();
+
+  static Map<Difficulty, int> _parseLevelMap(dynamic raw) {
+    final map = <Difficulty, int>{};
+    if (raw is Map) {
+      raw.forEach((key, value) {
+        final name = key.toString();
+        if (Difficulty.values.any((d) => d.name == name) && value is num) {
+          map[Difficulty.fromName(name)] = value.toInt();
+        }
+      });
+    }
+    return map;
+  }
 
   factory LeaderboardPlayer.fromJson(Map<String, dynamic> json) {
     return LeaderboardPlayer(
@@ -26,6 +55,9 @@ class LeaderboardPlayer {
       gamesWon: (json['gamesWon'] as num).toInt(),
       streak: (json['streakDays'] as num?)?.toInt() ?? 0,
       isCurrentUser: json['isCurrentUser'] as bool? ?? false,
+      totalTimeSeconds: (json['totalTimeSeconds'] as num?)?.toInt() ?? 0,
+      solved: _parseLevelMap(json['solved']),
+      bestTimes: _parseLevelMap(json['bestTimes']),
     );
   }
 }

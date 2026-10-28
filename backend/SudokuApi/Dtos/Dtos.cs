@@ -86,4 +86,7 @@ public record LeaderboardEntryDto(
     int Score,
     int GamesWon,
     int StreakDays,
-    bool IsCurrentUser);
+    bool IsCurrentUser,
+    int TotalTimeSeconds,                 // tổng thời gian các ván đã giải trong kỳ
+    Dictionary<string, int> Solved,       // số ván đã giải theo cấp độ, vd { "easy": 3, "hard": 1 }
+    Dictionary<string, int> BestTimes);   // thời gian tốt nhất (giây) theo cấp độ

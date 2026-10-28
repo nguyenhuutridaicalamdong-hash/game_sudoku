@@ -54,7 +54,7 @@ public class LeaderboardController : ControllerBase
 
         // Lấy dữ liệu gọn rồi gom nhóm trong bộ nhớ (dễ hiểu, tránh lỗi dịch câu SQL)
         var rows = await query
-            .Select(g => new { g.UserId, g.Score, g.IsCompleted })
+            .Select(g => new { g.UserId, g.Score, g.IsCompleted, g.Difficulty, g.TimeSeconds })
             .ToListAsync();
 
         var grouped = rows
@@ -64,6 +64,14 @@ public class LeaderboardController : ControllerBase
                 UserId = g.Key,
                 Score = g.Sum(x => x.Score),
                 GamesWon = g.Count(x => x.IsCompleted),
+                TotalTime = g.Where(x => x.IsCompleted).Sum(x => x.TimeSeconds),
+                // Các cấp độ đã giải: số ván + thời gian tốt nhất
+                Solved = g.Where(x => x.IsCompleted)
+                    .GroupBy(x => x.Difficulty)
+                    .ToDictionary(d => d.Key, d => d.Count()),
+                BestTimes = g.Where(x => x.IsCompleted)
+                    .GroupBy(x => x.Difficulty)
+                    .ToDictionary(d => d.Key, d => d.Min(x => x.TimeSeconds)),
             })
             .OrderByDescending(x => x.Score)
             .ThenByDescending(x => x.GamesWon)
@@ -82,7 +90,9 @@ public class LeaderboardController : ControllerBase
             // Lấy top N, nhưng luôn kèm theo dòng của chính mình
             if (i >= top && !isMe) continue;
             if (!users.TryGetValue(row.UserId, out var u)) continue;
-            result.Add(new LeaderboardEntryDto(i + 1, u.Id, u.DisplayName, row.Score, row.GamesWon, u.StreakDays, isMe));
+            result.Add(new LeaderboardEntryDto(
+                i + 1, u.Id, u.DisplayName, row.Score, row.GamesWon, u.StreakDays, isMe,
+                row.TotalTime, row.Solved, row.BestTimes));
         }
 
         return Ok(result);
